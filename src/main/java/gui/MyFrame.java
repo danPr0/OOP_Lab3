@@ -18,6 +18,7 @@ import java.util.Scanner;
 
 public class MyFrame extends JFrame implements WindowListener {
     private ReportBuilder reportBuilder;
+    private String reportFormat;
 
     public MyFrame() {
         super();
@@ -31,7 +32,8 @@ public class MyFrame extends JFrame implements WindowListener {
         setLayout(layout);
 
         FileTreeEventManager eventManager = new FileTreeEventManager();
-        reportBuilder = Report.builder(askForReportFormat());
+        reportFormat = askForReportFormat();
+        reportBuilder = Report.builder();
         Map<String, byte[]> buffer = new HashMap<>();
 
         FileTreePanel leftPanel = new FileTreePanel(this, this.getWidth() / 2 - 100, 600, buffer, eventManager, reportBuilder);
@@ -146,7 +148,7 @@ public class MyFrame extends JFrame implements WindowListener {
     public void windowClosing(WindowEvent e) {
         Report report = reportBuilder.build();
         try {
-            report.save();
+            report.save(reportFormat);
         } catch (IOException ex) {
             ex.printStackTrace();
         }

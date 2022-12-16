@@ -9,12 +9,11 @@ import util.FileTreeEventManager;
 import javax.swing.*;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeExpansionListener;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.text.html.HTMLDocument;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeCellRenderer;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.io.*;
 import java.util.*;
@@ -24,13 +23,16 @@ public class FileTreePanel extends JPanel {
     private MyFrame myFrame;
     private JScrollPane treeScrollPane;
     private JComboBox<String> diskSelect, fileFilter;
-    private Map<String, File[]> expandedPaths;
     private JMenuItem newFileItem, openTxtFileItem, pasteFileItem, copyFileItem, copyTxtFilesItem, cutFileItem, deleteFileItem, renameFileItem;
 
     private Map<String, byte[]> buffer;
     private File currentFile = null;
+    private Map<String, File[]> expandedPaths;
     private FileTreeEventManager eventManager;
     private ReportBuilder reportBuilder;
+
+    private static final String DISK_C = "C:";
+    private static final String DISK_D = "D:";
 
     public FileTreePanel(MyFrame myFrame, int width, int height, Map<String, byte[]> buffer, FileTreeEventManager eventManager, ReportBuilder reportBuilder) {
         super();
@@ -43,10 +45,10 @@ public class FileTreePanel extends JPanel {
         setPreferredSize(new Dimension(width, height));
         setLayout(new FlowLayout(FlowLayout.LEFT));
 
-        diskSelect = new JComboBox<>(new String[]{"C:", "D:"});
+        diskSelect = new JComboBox<>(new String[]{DISK_D, DISK_C});
         fileFilter = new JComboBox<>(new String[]{FileExtension.all.getValue(), FileExtension.txt.getValue(), FileExtension.html.getValue()});
 
-        treeScrollPane = new JScrollPane(createFileTree(diskSelect.getSelectedItem() + File.separator, FileExtension.getByValue((String) fileFilter.getSelectedItem())));
+        treeScrollPane = new JScrollPane(createFileTree((String) diskSelect.getSelectedItem(), FileExtension.getByValue((String) fileFilter.getSelectedItem())));
         treeScrollPane.setPreferredSize(new Dimension(width, height - 200));
 
         JButton refreshButton = new JButton("Refresh");
@@ -72,62 +74,18 @@ public class FileTreePanel extends JPanel {
     }
 
     private JTree createFileTree(String rootPath, FileExtension allowedExtension) {
-        expandedPaths.putIfAbsent(createFilepath(new TreePath(rootPath)), new File(rootPath).listFiles());
+        expandedPaths.putIfAbsent(rootPath, new File(rootPath).listFiles());
+
         List<TreePath> pathsToExpand = new ArrayList<>();
         DefaultMutableTreeNode rootNode = getTreeNode(new TreeNode[]{}, new File(rootPath), rootPath, allowedExtension, pathsToExpand);
-
         JTree tree = new JTree(rootNode, true);
-        tree.setCellRenderer(new DefaultTreeCellRenderer() {
-            @Override
-            public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
-                super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
-                setIcon(FileSystemView.getFileSystemView().getSystemIcon(new File(createFilepath(new TreePath(node.getPath())))));
-                return this;
-            }
-        });
 
         for (TreePath pathToExpand : pathsToExpand)
             tree.expandPath(pathToExpand);
 
-        tree.addTreeSelectionListener(e -> {
-            currentFile = new File(createFilepath(e.getPath()));
-
-            JPopupMenu popupMenu = new JPopupMenu();
-            if (((DefaultMutableTreeNode) e.getPath().getLastPathComponent()).getAllowsChildren()) {
-                popupMenu.add(newFileItem);
-                popupMenu.add(copyTxtFilesItem);
-                popupMenu.add(pasteFileItem);
-                popupMenu.add(renameFileItem);
-
-                if (buffer == null)
-                    pasteFileItem.setEnabled(false);
-            } else {
-                if (FilenameUtils.getExtension(currentFile.getName()).equals("txt"))
-                    popupMenu.add(openTxtFileItem);
-                popupMenu.add(copyFileItem);
-                popupMenu.add(cutFileItem);
-                popupMenu.add(deleteFileItem);
-                popupMenu.add(renameFileItem);
-            }
-            popupMenu.show(myFrame, MouseInfo.getPointerInfo().getLocation().x, MouseInfo.getPointerInfo().getLocation().y);
-        });
-
-        tree.addTreeExpansionListener(new TreeExpansionListener() {
-            @Override
-            public void treeExpanded(TreeExpansionEvent event) {
-                String filepath = createFilepath(event.getPath());
-                expandedPaths.put(filepath, new File(filepath).listFiles());
-                reportBuilder.logEnterDirectoryOperation(createFilepath(event.getPath()));
-                refreshTree();
-            }
-
-            @Override
-            public void treeCollapsed(TreeExpansionEvent event) {
-                expandedPaths.remove(createFilepath(event.getPath()));
-                reportBuilder.logLeaveDirectoryOperation(createFilepath(event.getPath()));
-            }
-        });
+        tree.setCellRenderer(getTreeCellRenderer());
+        tree.addTreeSelectionListener(getTreeSelectionListener());
+        tree.addTreeExpansionListener(getTreeExpansionListener());
 
         return tree;
     }
@@ -157,16 +115,79 @@ public class FileTreePanel extends JPanel {
         return node;
     }
 
+    private TreeCellRenderer getTreeCellRenderer() {
+        return new DefaultTreeCellRenderer() {
+            @Override
+            public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
+                super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
+                setIcon(FileSystemView.getFileSystemView().getSystemIcon(new File(createFilepath(new TreePath(node.getPath())))));
+                return this;
+            }
+        };
+    }
+
+    private TreeSelectionListener getTreeSelectionListener() {
+        return e -> {
+            currentFile = new File(createFilepath(e.getPath()));
+
+            JPopupMenu popupMenu = new JPopupMenu();
+            if (((DefaultMutableTreeNode) e.getPath().getLastPathComponent()).getAllowsChildren()) {
+                popupMenu.add(newFileItem);
+                popupMenu.add(copyTxtFilesItem);
+                popupMenu.add(pasteFileItem);
+                popupMenu.add(renameFileItem);
+
+                if (buffer == null)
+                    pasteFileItem.setEnabled(false);
+            } else {
+                if (FilenameUtils.getExtension(currentFile.getName()).equals("txt"))
+                    popupMenu.add(openTxtFileItem);
+                popupMenu.add(copyFileItem);
+                popupMenu.add(cutFileItem);
+                popupMenu.add(deleteFileItem);
+                popupMenu.add(renameFileItem);
+            }
+            popupMenu.show(myFrame, MouseInfo.getPointerInfo().getLocation().x, MouseInfo.getPointerInfo().getLocation().y);
+        };
+    }
+
+    private TreeExpansionListener getTreeExpansionListener() {
+        return new TreeExpansionListener() {
+            @Override
+            public void treeExpanded(TreeExpansionEvent event) {
+                String filepath = createFilepath(event.getPath());
+                expandedPaths.put(filepath, new File(filepath).listFiles());
+                reportBuilder.logEnterDirectoryOperation(createFilepath(event.getPath()));
+                refreshTree();
+            }
+
+            @Override
+            public void treeCollapsed(TreeExpansionEvent event) {
+                expandedPaths.remove(createFilepath(event.getPath()));
+                reportBuilder.logLeaveDirectoryOperation(createFilepath(event.getPath()));
+            }
+        };
+    }
+
     private String createFilepath(TreePath path) {
         StringBuilder result = new StringBuilder();
         for (Object branch : path.getPath()) {
             result.append(branch.toString()).append(File.separator);
         }
+        result.deleteCharAt(result.length() - 1);
         return result.toString();
     }
 
+    public void directoryRenamed(String oldFilepath, String newFilepath) {
+        if (expandedPaths.containsKey(oldFilepath)) {
+            expandedPaths.remove(oldFilepath);
+            expandedPaths.put(newFilepath, new File(newFilepath).listFiles());
+        }
+    }
+
     public synchronized void refreshTree() {
-        treeScrollPane.setViewportView(createFileTree(diskSelect.getSelectedItem() + File.separator, FileExtension.getByValue((String) fileFilter.getSelectedItem())));
+        treeScrollPane.setViewportView(createFileTree((String) diskSelect.getSelectedItem(), FileExtension.getByValue((String) fileFilter.getSelectedItem())));
         treeScrollPane.repaint();
     }
 

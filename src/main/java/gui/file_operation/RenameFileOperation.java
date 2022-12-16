@@ -33,13 +33,16 @@ public class RenameFileOperation extends FileOperation {
         JButton OKButton = new JButton("OK");
         OKButton.addActionListener(okEvent -> {
             String oldPath = fileTree.getCurrentFile().getAbsolutePath();
-            boolean ifSuccess = renameFile(fileTree.getCurrentFile(), filenameField.getText());
+            String newPath = fileTree.getCurrentFile().getParent() + (fileTree.getCurrentFile().isFile() ? File.separator : "") + filenameField.getText();
+            boolean ifSuccess = renameFile(fileTree.getCurrentFile(), newPath);
             if (!ifSuccess) {
                 JOptionPane.showMessageDialog(inputFrame, "There's already a file with the same name in this location", "ERROR", JOptionPane.ERROR_MESSAGE);
             }
             else inputFrame.dispose();
 
-            fileTree.getReportBuilder().logRenameFileOperation(oldPath, filenameField.getText(), ifSuccess);
+            if (new File(newPath).isDirectory())
+                fileTree.getEventManager().directoryRenamedEvent(oldPath, newPath);
+            fileTree.getReportBuilder().logRenameFileOperation(oldPath, newPath, ifSuccess);
             fileTree.getEventManager().notifyListeners();
         });
 
@@ -50,7 +53,7 @@ public class RenameFileOperation extends FileOperation {
         inputFrame.setVisible(true);
     }
 
-    private boolean renameFile(File file, String newFilename) {
-        return file.renameTo(new File(file.getParent() + File.separator + newFilename));
+    private boolean renameFile(File file, String newFilepath) {
+        return file.renameTo(new File(newFilepath));
     }
 }

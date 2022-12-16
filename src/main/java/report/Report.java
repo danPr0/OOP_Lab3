@@ -5,21 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Report {
-    private String format;
     private String txtFilepath = "report.txt";
     private String htmlFilepath = "report.html";
     private String greeting, ending;
     private List<String> messages = new ArrayList<>();
 
-    public Report(String format) {
-        this.format = format;
+    public static ReportBuilder builder() {
+        return new ReportBuilder();
     }
 
-    public static ReportBuilder builder(String format) {
-        return new ReportBuilder(format);
-    }
-
-    public void save() throws IOException {
+    public void save(String format) throws IOException {
         if (format.equals("html"))
             saveHtml();
         else saveTxt();

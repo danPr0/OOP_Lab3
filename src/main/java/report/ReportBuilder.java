@@ -10,8 +10,8 @@ public class ReportBuilder {
     private Report report;
     private SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 
-    public ReportBuilder(String format) {
-        report = new Report(format);
+    public ReportBuilder() {
+        report = new Report();
         report.setGreeting(String.format("Звіт про роботу файлового менеджера. %s", formatter.format(Date.from(Instant.now()))));
     }
 
