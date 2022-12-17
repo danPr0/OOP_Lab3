@@ -1,6 +1,7 @@
 package gui;
 
 import org.apache.commons.io.FileUtils;
+import service.FileService;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -68,13 +69,7 @@ public class TxtFileEditor extends JFrame {
 
         private JMenuItem createSaveFileItem() {
             JMenuItem saveItem = new JMenuItem("Save");
-            saveItem.addActionListener(e -> {
-                try {
-                    Files.writeString(Path.of(file.getAbsolutePath()), fileContent.getText());
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
-            });
+            saveItem.addActionListener(e -> FileService.writeContentToFile(file.getAbsolutePath(), fileContent.getText()));
             return saveItem;
         }
 
@@ -158,11 +153,7 @@ public class TxtFileEditor extends JFrame {
                 else i++;
             }
 
-            try {
-                Files.writeString(Path.of(filepath), lines.stream().reduce((r, w) -> r + "\n" + w).get());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            FileService.writeContentToFile(filepath, lines.stream().reduce((r, w) -> r + "\n" + w).get());
         }
     }
 }

@@ -1,6 +1,7 @@
 package gui.file_operation;
 
 import gui.FileTreePanel;
+import service.FileService;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -13,15 +14,11 @@ public class DeleteFileOperation extends FileOperation{
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        boolean ifSuccess = deleteFile(fileTree.getCurrentFile());
-        if (!ifSuccess)
+        boolean isSuccess = FileService.deleteFile(fileTree.getCurrentFile());
+        if (!isSuccess)
             JOptionPane.showMessageDialog(fileTree.getMyFrame(), "Unable to delete file", "ERROR", JOptionPane.ERROR_MESSAGE);
 
-        fileTree.getReportBuilder().logDeleteFileOperation(fileTree.getCurrentFile().getAbsolutePath(), ifSuccess);
+        fileTree.getReportBuilder().logDeleteFileOperation(fileTree.getCurrentFile().getAbsolutePath(), isSuccess);
         fileTree.getEventManager().notifyListeners();
-    }
-
-    private boolean deleteFile(File file) {
-        return file.delete();
     }
 }

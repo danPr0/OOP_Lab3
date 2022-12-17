@@ -23,7 +23,7 @@ public class FileTreePanel extends JPanel {
     private MyFrame myFrame;
     private JScrollPane treeScrollPane;
     private JComboBox<String> diskSelect, fileFilter;
-    private JMenuItem newFileItem, openTxtFileItem, pasteFileItem, copyFileItem, copyTxtFilesItem, cutFileItem, deleteFileItem, renameFileItem;
+    private JMenuItem newFileItem, newDirectoryItem, openTxtFileItem, pasteFileItem, copyFileItem, copyTxtFilesItem, cutFileItem, deleteFileItem, renameFileItem;
 
     private Map<String, byte[]> buffer;
     private File currentFile = null;
@@ -31,8 +31,8 @@ public class FileTreePanel extends JPanel {
     private FileTreeEventManager eventManager;
     private ReportBuilder reportBuilder;
 
-    private static final String DISK_C = "C:";
-    private static final String DISK_D = "D:";
+    private static final String DISK_C = "C:/";
+    private static final String DISK_D = "D:/";
 
     public FileTreePanel(MyFrame myFrame, int width, int height, Map<String, byte[]> buffer, FileTreeEventManager eventManager, ReportBuilder reportBuilder) {
         super();
@@ -63,7 +63,8 @@ public class FileTreePanel extends JPanel {
     }
 
     private void initializeFileOperations() {
-        newFileItem = new NewFileOperation("New", this);
+        newFileItem = new NewFileOperation("New file", this);
+        newDirectoryItem = new NewDirectoryOperation("New directory", this);
         pasteFileItem = new PasteFileOperation("Paste", this);
         openTxtFileItem = new OpenTxtFileOperation("Open", this);
         copyFileItem = new CopyFileOperation("Copy", this);
@@ -74,7 +75,7 @@ public class FileTreePanel extends JPanel {
     }
 
     private JTree createFileTree(String rootPath, FileExtension allowedExtension) {
-        expandedPaths.putIfAbsent(rootPath, new File(rootPath).listFiles());
+        expandedPaths.putIfAbsent(createFilepath(new TreePath(rootPath)), new File(rootPath).listFiles());
 
         List<TreePath> pathsToExpand = new ArrayList<>();
         DefaultMutableTreeNode rootNode = getTreeNode(new TreeNode[]{}, new File(rootPath), rootPath, allowedExtension, pathsToExpand);
@@ -134,6 +135,7 @@ public class FileTreePanel extends JPanel {
             JPopupMenu popupMenu = new JPopupMenu();
             if (((DefaultMutableTreeNode) e.getPath().getLastPathComponent()).getAllowsChildren()) {
                 popupMenu.add(newFileItem);
+                popupMenu.add(newDirectoryItem);
                 popupMenu.add(copyTxtFilesItem);
                 popupMenu.add(pasteFileItem);
                 popupMenu.add(renameFileItem);
@@ -171,12 +173,20 @@ public class FileTreePanel extends JPanel {
     }
 
     private String createFilepath(TreePath path) {
-        StringBuilder result = new StringBuilder();
+        StringBuilder filepath = new StringBuilder();
         for (Object branch : path.getPath()) {
-            result.append(branch.toString()).append(File.separator);
+            filepath.append(branch.toString()).append(File.separator);
         }
-        result.deleteCharAt(result.length() - 1);
-        return result.toString();
+        filepath.deleteCharAt(filepath.length() - 1);
+        String result;
+        try {
+            result = new File(filepath.toString()).getCanonicalPath();
+        }
+        catch (IOException e) {
+            result = filepath.toString();
+            e.printStackTrace();
+        }
+        return result;
     }
 
     public void directoryRenamed(String oldFilepath, String newFilepath) {

@@ -14,11 +14,4 @@ public abstract class FileOperation extends JMenuItem implements ActionListener 
         this.fileTree = fileTree;
         addActionListener(this);
     }
-
-    protected String convertExistingFilename(int noOfCopies, String filename) {
-        String extension = FilenameUtils.getExtension(filename);
-        if (noOfCopies == 0)
-            return filename.substring(0, filename.lastIndexOf("." + extension)) +  "(" + (noOfCopies + 1) + ")." + extension;
-        else return filename.substring(0, filename.lastIndexOf("(" + noOfCopies + ")")) + "(" + (noOfCopies + 1) + ")." + extension;
-    }
 }

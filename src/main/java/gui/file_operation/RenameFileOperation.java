@@ -1,6 +1,7 @@
 package gui.file_operation;
 
 import gui.FileTreePanel;
+import service.FileService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -32,17 +33,20 @@ public class RenameFileOperation extends FileOperation {
 
         JButton OKButton = new JButton("OK");
         OKButton.addActionListener(okEvent -> {
-            String oldPath = fileTree.getCurrentFile().getAbsolutePath();
-            String newPath = fileTree.getCurrentFile().getParent() + (fileTree.getCurrentFile().isFile() ? File.separator : "") + filenameField.getText();
-            boolean ifSuccess = renameFile(fileTree.getCurrentFile(), newPath);
-            if (!ifSuccess) {
+            File currentFile = fileTree.getCurrentFile();
+            String oldPath = currentFile.getAbsolutePath();
+            String newPath = currentFile.getAbsolutePath().replace(currentFile.getName(), filenameField.getText());
+            boolean isSuccess = FileService.renameFile(currentFile, newPath);
+            if (!isSuccess) {
                 JOptionPane.showMessageDialog(inputFrame, "There's already a file with the same name in this location", "ERROR", JOptionPane.ERROR_MESSAGE);
             }
-            else inputFrame.dispose();
+            else {
+                if (new File(newPath).isDirectory())
+                    fileTree.getEventManager().directoryRenamedEvent(oldPath, newPath);
+                inputFrame.dispose();
+            }
 
-            if (new File(newPath).isDirectory())
-                fileTree.getEventManager().directoryRenamedEvent(oldPath, newPath);
-            fileTree.getReportBuilder().logRenameFileOperation(oldPath, newPath, ifSuccess);
+            fileTree.getReportBuilder().logRenameFileOperation(oldPath, newPath, isSuccess);
             fileTree.getEventManager().notifyListeners();
         });
 
@@ -51,9 +55,5 @@ public class RenameFileOperation extends FileOperation {
 
         inputFrame.add(panel);
         inputFrame.setVisible(true);
-    }
-
-    private boolean renameFile(File file, String newFilepath) {
-        return file.renameTo(new File(newFilepath));
     }
 }

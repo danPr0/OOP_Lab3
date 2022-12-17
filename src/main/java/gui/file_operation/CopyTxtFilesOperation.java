@@ -2,6 +2,7 @@ package gui.file_operation;
 
 import gui.FileTreePanel;
 import org.apache.commons.io.FilenameUtils;
+import service.FileService;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -21,26 +22,11 @@ public class CopyTxtFilesOperation extends FileOperation {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        boolean ifSuccess = copyTxtFiles(fileTree.getCurrentFile(), fileTree.getBuffer());
-        if (!ifSuccess)
+        boolean isSuccess = FileService.copyTxtFiles(fileTree.getCurrentFile(), fileTree.getBuffer());
+        if (!isSuccess)
             JOptionPane.showMessageDialog(fileTree.getMyFrame(), "Unable to copy txt files", "ERROR", JOptionPane.ERROR_MESSAGE);
 
-        fileTree.getReportBuilder().logCopyTxtFilesOperation(fileTree.getCurrentFile().getAbsolutePath(), ifSuccess);
+        fileTree.getReportBuilder().logCopyTxtFilesOperation(fileTree.getCurrentFile().getAbsolutePath(), isSuccess);
         fileTree.getEventManager().notifyListeners();
-    }
-
-    private boolean copyTxtFiles(File directory, Map<String, byte[]> buffer) {
-        boolean success = true;
-        try {
-            buffer.clear();
-            for (File file : Objects.requireNonNull(directory.listFiles())) {
-                if (file.isFile() && FilenameUtils.getExtension(file.getName()).equals("txt"))
-                    buffer.put(file.getName(), Files.readAllBytes(Path.of(file.getAbsolutePath())));
-            }
-        } catch (IOException ex) {
-            success = false;
-            ex.printStackTrace();
-        }
-        return success;
     }
 }

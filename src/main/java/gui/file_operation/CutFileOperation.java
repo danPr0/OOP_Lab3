@@ -2,6 +2,7 @@ package gui.file_operation;
 
 import gui.FileTreePanel;
 import org.apache.commons.io.FileUtils;
+import service.FileService;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -19,27 +20,11 @@ public class CutFileOperation extends FileOperation {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        boolean ifSuccess = cutFile(fileTree.getCurrentFile(), fileTree.getBuffer());
-        if (!ifSuccess)
+        boolean isSuccess = FileService.cutFile(fileTree.getCurrentFile(), fileTree.getBuffer());
+        if (!isSuccess)
             JOptionPane.showMessageDialog(fileTree.getMyFrame(), "Unable to cut the file", "ERROR", JOptionPane.ERROR_MESSAGE);
 
-        fileTree.getReportBuilder().logCutFileOperation(fileTree.getCurrentFile().getAbsolutePath(), ifSuccess);
+        fileTree.getReportBuilder().logCutFileOperation(fileTree.getCurrentFile().getAbsolutePath(), isSuccess);
         fileTree.getEventManager().notifyListeners();
-    }
-
-    private boolean cutFile(File currentFile, Map<String, byte[]> buffer) {
-        boolean success = true;
-        try {
-            buffer.clear();
-            buffer.put(currentFile.getName(), Files.readAllBytes(Path.of(currentFile.getAbsolutePath())));
-        } catch (IOException ex) {
-            success = false;
-            ex.printStackTrace();
-        }
-
-        if (!currentFile.delete())
-            success = false;
-
-        return success;
     }
 }
